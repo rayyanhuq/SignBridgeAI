@@ -2,75 +2,106 @@ import { useEffect, useState } from "react";
 import "./App.css";
 
 type HealthStatus = "loading" | "ok" | "error";
-
 const API_BASE_URL = "http://localhost:8000";
 
 function App() {
   const [status, setStatus] = useState<HealthStatus>("loading");
-  const [mode, setMode] = useState<"alphabet" | "words">("alphabet");
-  const [sentence, setSentence] = useState("HELLO");
-  const [running, setRunning] = useState(false);
+  const [connected, setConnected] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/health`)
       .then((res) => {
-        if (!res.ok) throw new Error(`Unexpected status ${res.status}`);
+        if (!res.ok) throw new Error();
         return res.json();
       })
       .then(() => setStatus("ok"))
       .catch(() => setStatus("error"));
   }, []);
 
+  const sendMessage = () => {
+    if (!message.trim()) return;
+    setMessage("");
+  };
+
   return (
     <main className="app-shell">
       <header className="topbar">
         <div className="brand"><span className="brand-mark">S</span><span>SignBridge</span></div>
-        <div className="status"><span className={`status-dot ${status === "error" ? "status-error" : ""}`} /> {status === "ok" ? "System ready" : status === "loading" ? "Connecting" : "API offline"}</div>
+        <div className="call-state">
+          <span className={`status-dot ${status === "error" ? "status-error" : ""}`} />
+          {connected ? "Call connected" : status === "ok" ? "System ready" : status === "loading" ? "Connecting" : "API offline"}
+        </div>
       </header>
 
-      <section className="hero">
-        <div className="eyebrow">LIVE TRANSLATION</div>
-        <h1>Sign language,<br /><em>made understood.</em></h1>
-        <p>Turn hand signs into letters, words, and meaningful communication in real time.</p>
+      <section className="intro">
+        <div>
+          <span className="eyebrow">PRIVATE COMMUNICATION</span>
+          <h1>Talk naturally.<br /><em>Understand each other.</em></h1>
+        </div>
+        <p>SignBridge helps two people communicate across sign language and speech in one simple conversation.</p>
       </section>
 
-      <section className="workspace">
-        <div className="camera-panel">
-          <div className="panel-top"><span>CAMERA</span><span className={running ? "live live-on" : "live"}>{running ? "● LIVE" : "READY"}</span></div>
-          <div className="camera-frame">
-            <div className="corner tl" /><div className="corner tr" /><div className="corner bl" /><div className="corner br" />
-            <div className="hand-placeholder">✋</div>
-            <div className="camera-message">Camera preview</div>
+      <section className="call-card">
+        <div className="call-header">
+          <div>
+            <span className="eyebrow">SIGNBRIDGE CALL</span>
+            <strong>{connected ? "Conversation in progress" : "Ready to connect"}</strong>
           </div>
-          <button className="primary-button" onClick={() => setRunning(!running)}>{running ? "Stop camera" : "Start camera"}</button>
+          <span className="secure"><span /> Private</span>
         </div>
 
-        <div className="translation-panel">
-          <div className="mode-switch">
-            <button className={mode === "alphabet" ? "active" : ""} onClick={() => setMode("alphabet")}>Alphabet</button>
-            <button className={mode === "words" ? "active" : ""} onClick={() => setMode("words")}>Words</button>
+        <div className="video-grid">
+          <div className="video-tile signer-tile">
+            <div className="video-label"><span>YOU</span><small>Signing</small></div>
+            <div className="avatar-hand">✋</div>
+            <div className="video-caption">Camera preview</div>
           </div>
-
-          <div className="prediction">
-            <span className="label">CURRENT {mode === "alphabet" ? "SIGN" : "WORD"}</span>
-            <div className="letter">{mode === "alphabet" ? "A" : "HELLO"}</div>
-            <div className="confidence"><span>Confidence</span><strong>99.9%</strong></div>
-            <div className="confidence-bar"><span /></div>
+          <div className="video-tile person-tile">
+            <div className="video-label"><span>OTHER PERSON</span><small>Speaking</small></div>
+            <div className="avatar">R</div>
+            <div className="video-caption">Camera preview</div>
           </div>
+        </div>
 
-          <div className="translation">
-            <span className="label">TRANSLATION</span>
-            <div className="sentence">{sentence || "Start signing..."}</div>
-            <div className="controls">
-              <button onClick={() => setSentence(sentence + " ")}>Space</button>
-              <button onClick={() => setSentence(sentence.slice(0, -1))}>Delete</button>
-              <button onClick={() => setSentence("")}>Clear</button>
+        <div className="translation-strip">
+          <div className="translation-title"><span className="pulse" /> SIGNBRIDGE TRANSLATION</div>
+          <div className="translation-content">
+            <span className="translation-icon">✋</span>
+            <div>
+              <small>YOU</small>
+              <strong>“Hello, how are you?”</strong>
+            </div>
+            <span className="translation-arrow">→</span>
+            <div className="translated-response">
+              <small>TRANSLATED</small>
+              <strong>Hello, how are you?</strong>
             </div>
           </div>
         </div>
+
+        <div className="conversation">
+          <div className="section-heading"><span>CONVERSATION</span><small>Live transcript</small></div>
+          <div className="messages">
+            <div className="message theirs"><span className="message-name">OTHER PERSON</span><p>How are you doing today?</p><time>10:42 AM</time></div>
+            <div className="message yours"><span className="message-name">YOU · TRANSLATED</span><p>I'm doing well. How about you?</p><time>10:43 AM</time></div>
+          </div>
+          <div className="composer">
+            <input value={message} onChange={(e) => setMessage(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()} placeholder="Type a message to communicate..." />
+            <button onClick={sendMessage}>Send</button>
+          </div>
+        </div>
+
+        <div className="call-controls">
+          <button className="control" onClick={() => setConnected(!connected)}><span>◉</span>{connected ? "Connected" : "Connect"}</button>
+          <button className="control"><span>♩</span> Microphone</button>
+          <button className="control"><span>▣</span> Camera</button>
+          <button className="control captions"><span>CC</span> Captions</button>
+          <button className="end-call" onClick={() => setConnected(false)}>End call</button>
+        </div>
       </section>
 
-      <footer><span>Stage 1 · ASL recognition</span><span>MediaPipe · ML inference</span></footer>
+      <footer><span>SignBridge AI · Accessible communication</span><span>MediaPipe · ML inference · WLASL</span></footer>
     </main>
   );
 }
